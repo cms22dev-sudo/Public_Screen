@@ -584,10 +584,9 @@ html, body{
     display:inline-flex;
     align-items:center;
     padding-right:80px;
-    direction:rtl; /* Pour le contenu arabe */
 }
 
-.welcome-badge{
+.welcome-msg{
     display:inline-flex;
     align-items:center;
     gap:15px;
@@ -604,7 +603,7 @@ html, body{
     text-shadow:0 2px 15px rgba(255,176,0,.6);
 }
 
-.day-marker{
+.day-badge{
     font-size:2.2rem;
     font-weight:900;
     color:var(--accent-bright);
@@ -614,15 +613,13 @@ html, body{
     text-shadow:0 2px 12px rgba(255,176,0,.5);
 }
 
-.spec-item{
-    font-size:1.9rem;
-    font-weight:600;
-    color:var(--white);
+.service-group{
+    display:inline-flex;
+    align-items:center;
     margin:0 10px;
-    font-family:var(--font-ar);
 }
 
-.spec-time{
+.service-time{
     font-size:1.8rem;
     font-weight:600;
     color:rgba(255,255,255,.75);
@@ -630,11 +627,23 @@ html, body{
     margin:0 5px;
 }
 
-.spec-sep{
+.service-name{
+    font-size:1.9rem;
+    font-weight:600;
+    color:var(--white);
+    margin:0 10px;
+}
+
+.separator{
     color:var(--accent);
     margin:0 18px;
     font-size:1.6rem;
     font-weight:700;
+}
+
+/* For Arabic text */
+.service-group[dir="rtl"] .service-name{
+    font-family:var(--font-ar);
 }
 
 /* ========== RESPONSIVE ========== */
@@ -844,16 +853,16 @@ const planning = {
     ]
 };
 
-// CORRECTION DÉFINITIVE: L'ordre correct pour l'affichage dans le ticker
-// Dimanche doit être en premier dans l'affichage, même si JavaScript le considère comme jour 0
-const tickerOrder = ["dimanche", "lundi", "mardi", "mercredi", "jeudi"];
+// Ordre des jours pour le ticker
+const daysOrder = ["dimanche", "lundi", "mardi", "mercredi", "jeudi"];
 
+// Traductions des jours
 const daysFR = {
     dimanche:"DIMANCHE", lundi:"LUNDI", mardi:"MARDI",
     mercredi:"MERCREDI", jeudi:"JEUDI"
 };
 const daysAR = {
-    dimanche:"الأحد", lundi:"الإثنين", mardi:"الثلاثاء",
+    dimanche:"الأحد", lundi:"الاثنين", mardi:"الثلاثاء",
     mercredi:"الأربعاء", jeudi:"الخميس"
 };
 
@@ -961,67 +970,67 @@ function rotateSpecialty(){
     }
 }
 
-/* ========== TICKER BAR - CORRIGÉ DÉFINITIVEMENT ========== */
-function buildTicker(){
-    let htmlFR = '';
-    let htmlAR = '';
-    
-    // Construction du ticker français
-    htmlFR += `<div class="ticker-segment">`;
-    htmlFR += `<span class="welcome-badge">🏥 BIENVENUE AU CENTRE MÉDICAL SOCIAL 🏥</span>`;
-    
-    // Construction du ticker arabe
-    htmlAR += `<div class="ticker-segment">`;
-    htmlAR += `<span class="welcome-badge">🏥 المركز الطبي الاجتماعي للجمارك سيدي بلعباس يرحب بكم 🏥</span>`;
-    
-    // CORRECTION: Utiliser tickerOrder qui est dans le bon ordre
-    // Dimanche → Lundi → Mardi → Mercredi → Jeudi
-    tickerOrder.forEach(day => {
-        const dayFR = daysFR[day];
-        const dayAR = daysAR[day];
+/* ========== TICKER BAR - NOUVELLE IMPLÉMENTATION ========== */
+function initTickers() {
+    // 1. Define Welcome Messages
+    const welcomeFr = `<span class="welcome-msg">✦ BIENVENUE AU CENTRE MÉDICO-SOCIAL DES DOUANES ✦</span>`;
+    const welcomeAr = `<span class="welcome-msg">✦ تعاضدية الجمارك الجزائرية ترحب بكم في المركز الطبي الاجتماعي ✦</span>`;
+
+    let htmlFr = '';
+    let htmlAr = '';
+
+    // 2. Build the Content Loop
+    daysOrder.forEach(day => {
+        const dayData = planning[day];
+        if(!dayData || dayData.length === 0) return;
+
+        // --- French Logic (Standard LTR) ---
+        const dayBadgeFr = `<span class="day-badge">${daysFR[day]}</span>`;
+        let dayContentFr = "";
         
-        // Français - Jour puis spécialités (horaire d'abord, puis nom)
-        htmlFR += `<span class="day-marker">${dayFR}</span>`;
+        dayData.forEach(item => {
+            dayContentFr += `
+                <span class="service-group">
+                    <span class="service-time">${item.time}</span>
+                    <span class="service-name">${item.fr}</span>
+                    <span class="separator">•</span>
+                </span>
+            `;
+        });
+        // Result: [Day] [Time Service] [Time Service]...
+        htmlFr += `${dayBadgeFr} ${dayContentFr}`;
+
+
+        // --- Arabic Logic (RTL Fix) ---
+        const dayBadgeAr = `<span class="day-badge">${daysAR[day]}</span>`;
         
-        const specialties = planning[day];
-        if(specialties){
-            specialties.forEach((spec, idx) => {
-                // Format: Horaire puis nom de spécialité
-                htmlFR += `<span class="spec-time">${spec.time}</span>`;
-                htmlFR += `<span class="spec-item">${spec.fr}</span>`;
-                
-                if(idx < specialties.length - 1){
-                    htmlFR += `<span class="spec-sep">•</span>`;
-                }
-            });
-        }
+        let dayContentAr = "";
+        dayData.forEach(item => {
+            dayContentAr += `
+                <span class="service-group" dir="rtl">
+                    <span class="service-name">${item.ar}</span>
+                    <span class="service-time">${item.time}</span>
+                    <span class="separator">•</span>
+                </span>
+            `;
+        });
         
-        // Arabe - Jour puis spécialités (nom d'abord, puis horaire)
-        htmlAR += `<span class="day-marker">${dayAR}</span>`;
-        
-        if(specialties){
-            specialties.forEach((spec, idx) => {
-                htmlAR += `<span class="spec-item">${spec.ar}</span>`;
-                htmlAR += `<span class="spec-time">${spec.time}</span>`;
-                
-                if(idx < specialties.length - 1){
-                    htmlAR += `<span class="spec-sep">•</span>`;
-                }
-            });
-        }
+        // Result: [Day] [Service Time] [Service Time]...
+        htmlAr += `${dayBadgeAr} ${dayContentAr}`;
     });
-    
-    htmlFR += `</div>`;
-    htmlAR += `</div>`;
-    
-    // Dupliquer 8x pour une boucle fluide
-    const repeatFR = htmlFR.repeat(8);
-    const repeatAR = htmlAR.repeat(8);
-    
-    // Insérer le contenu
-    tickerFR.innerHTML = repeatFR;
-    tickerAR.innerHTML = repeatAR;
-    
+
+    // 3. Combine: Welcome + Content + Welcome + Content (Double for smooth loop)
+    const fullFr = `${welcomeFr} ${htmlFr} ${welcomeFr} ${htmlFr}`;
+    const fullAr = `${welcomeAr} ${htmlAr} ${welcomeAr} ${htmlAr}`;
+
+    // Wrap in ticker-segment divs
+    const segmentFr = `<div class="ticker-segment">${fullFr}</div>`;
+    const segmentAr = `<div class="ticker-segment">${fullAr}</div>`;
+
+    // Duplicate for smooth looping (8 times)
+    tickerFR.innerHTML = segmentFr.repeat(8);
+    tickerAR.innerHTML = segmentAr.repeat(8);
+
     // Restart animations
     restartTickerAnimations();
 }
@@ -1036,8 +1045,7 @@ function restartTickerAnimations(){
     void tickerAR.offsetWidth;
     
     // Redémarrer les animations avec la bonne direction
-    // CORRECTION: Vitesse ajustable ici - changez 200 par la vitesse voulue
-    const vitesseTicker = 600; // en secondes (200s = 3min20s)
+    const vitesseTicker = 600; // en secondes (600s = 10 minutes)
     tickerFR.style.animation = `tickerScroll ${vitesseTicker}s linear infinite`;
     tickerAR.style.animation = `tickerScrollArabic ${vitesseTicker}s linear infinite`;
 }
@@ -1052,17 +1060,17 @@ function init(){
     rotateSpecialty();
     rotationInterval = setInterval(rotateSpecialty, 8000);
     
-    // Build ticker
-    buildTicker();
+    // Build ticker using the new function
+    initTickers();
     
     // Redémarrer le ticker toutes les 5 minutes pour éviter les problèmes de synchronisation
     setInterval(() => {
-        buildTicker();
+        initTickers();
     }, 300000); // 5 minutes
     
     // Handle window resize
     window.addEventListener('resize', () => {
-        setTimeout(buildTicker, 100);
+        setTimeout(initTickers, 100);
     });
 }
 
